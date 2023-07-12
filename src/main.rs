@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::{Display}};
 
 use csv_types::*;
 
 fn read_file() {
     let toggle_entries =
-        csv::Reader::from_path("data/Toggl_Track_summary_report_2023-07-11_2023-07-11.csv")
+        csv::Reader::from_path("data/Toggl_Track_summary_report.csv")
             .unwrap()
             .into_deserialize()
             .collect::<Result<Vec<ToggleTimeCSVEntry>, _>>()
@@ -42,8 +42,12 @@ fn read_file() {
     println!("====================== Sucessfully mapped ======================");
     println!("{mapped_outputs:#?}");
 
-    println!("====================== Add mapping data ======================");
-    println!("{unmapped_outputs:#?}");
+    if !unmapped_outputs.is_empty() {
+        println!("====================== Add mapping data ======================");
+        let missing_mapping_keys = unmapped_outputs.iter().map(|e| TaskKey::from(e)).collect::<Vec<_>>();
+        println!("{}", TaskKey::display_vec(missing_mapping_keys));
+    }
+
 }
 
 fn main() {
@@ -81,6 +85,25 @@ struct TaskKey {
     pub project: String,
     pub client: String,
     pub description: String,
+}
+
+impl Display for TaskKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{},{},{}", self.project, self.client, self.description)
+    }
+}
+
+impl TaskKey {
+    fn display_vec(vec: Vec<Self>) -> String {
+        let mut output = String::new();
+        for task_key in vec {
+            output += &task_key.to_string();
+            output += "\n"
+        }
+
+        
+        return output;
+    }
 }
 
 impl From<&ToggleTimeCSVEntry> for TaskKey {

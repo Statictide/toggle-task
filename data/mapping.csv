@@ -1,3 +1,9 @@
 Project,Client,Description,TidsregPath
-FMB,Region Nord,Doc,Region Nord|B|A|A
+FMB,Region Nord,Doc,Region Nord|WO1 Beslutningstøtte|Support & Vedligehold|Timer|Billable
 FMB,Region Nord,ATAH infrastructure code review,Region Nord|A|A|A
+FMB,Region Nord,Test BSTVI-106,Region Nord|WO1 Beslutningstøtte|Support & Vedligehold|Timer|Billable
+Min læge,PLA,Latin-1,Praktiserende Lægers Organisation|W010 Applikationsstøtte|Smårettelse/ Mindre udviklingsopgaver|Time|Billable
+Min læge,PLA,Sprint retrospective: Jira,Praktiserende Lægers Organisation|W010 Applikationsstøtte|Projektledelse/Koordinering|Time|Not billable
+Min læge,PLA,Standup Min,Praktiserende Lægers Organisation|W010 Applikationsstøtte|Smårettelse/ Mindre udviklingsopgaver|Time|Billable
+Trifork,Trifork,GDPR,Trifork Public A/S|Intern tid|Intern tid|GDPR|Not billable
+Trifork,Trifork,Tidsreg,Trifork Public A/S|Intern tid|Afdelingsaktiviteter|Øvrige|Not billable
