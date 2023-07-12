@@ -11,15 +11,16 @@ fn read_file() {
             .collect::<Result<Vec<ToggleTimeCSVEntry>, _>>()
             .expect("Error reading toggle summary report");
 
-    let mapping_entries = csv::Reader::from_path("data/mapping.csv")
+    let mapping_entries_map = csv::Reader::from_path("data/mapping.csv")
         .unwrap()
         .into_deserialize()
-        .collect::<Result<Vec<MappingCSVEntry>, _>>()
-        .expect("Error reading mapping");
-
-    let mapping_entries_map = mapping_entries
-        .into_iter()
-        .map(|entry| (entry.task_key, entry.tidsreg_path))
+        .filter_map(|res| {
+            match res {
+                Ok(value) => Some(value),
+                Err(err) => {println!("Skipped invalid mapping entry err: {err}"); None},
+            }
+        })
+        .map(|entry: MappingCSVEntry| (entry.task_key, entry.tidsreg_path))
         .collect::<HashMap<_, _>>();
 
     let mut mapped_outputs = Vec::new();
@@ -38,7 +39,6 @@ fn read_file() {
     }
 
     mapped_outputs.sort_by_key(|e| e.tidsreg_path.clone());
-
 
     println!("====================== Sucessfully mapped ======================");
     for ele in mapped_outputs {
