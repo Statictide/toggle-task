@@ -1,4 +1,5 @@
-use std::{collections::HashMap, fmt::{Display}};
+use serde::Deserialize;
+use std::{collections::HashMap, fmt::Display};
 
 use csv_types::*;
 
@@ -18,17 +19,17 @@ fn read_file() {
 
     let mapping_entries_map = mapping_entries
         .into_iter()
-        .map(|entry| (TaskKey::from(&entry), entry.tidsreg_path))
+        .map(|entry| (entry.task_key, entry.tidsreg_path))
         .collect::<HashMap<_, _>>();
 
     let mut mapped_outputs = Vec::new();
     let mut unmapped_outputs = Vec::new();
     for toggle_entry in toggle_entries {
-        let path_option = mapping_entries_map.get(&TaskKey::from(&toggle_entry));
+        let path_option = mapping_entries_map.get(&toggle_entry.task_key);
 
         match path_option {
             Some(path) => mapped_outputs.push(Output {
-                description: toggle_entry.description,
+                description: toggle_entry.task_key.description,
                 tidsreg_path: path.clone(),
                 duration: toggle_entry.duration,
             }),
@@ -40,12 +41,16 @@ fn read_file() {
 
 
     println!("====================== Sucessfully mapped ======================");
-    println!("{mapped_outputs:#?}");
+    for ele in mapped_outputs {
+        println!("{ele}");
+    }
 
     if !unmapped_outputs.is_empty() {
         println!("====================== Add mapping data ======================");
-        let missing_mapping_keys = unmapped_outputs.iter().map(|e| TaskKey::from(e)).collect::<Vec<_>>();
-        println!("{}", TaskKey::display_vec(missing_mapping_keys));
+        let missing_mapping_keys = unmapped_outputs.into_iter().map(|e|e.task_key).collect::<Vec<_>>();
+        for ele in missing_mapping_keys {
+            print!("{ele}");
+        }
     }
 
 }
@@ -55,74 +60,40 @@ fn main() {
 }
 
 mod csv_types {
-    #[derive(serde::Deserialize, Debug)]
+    use serde::Deserialize;
+
+    use crate::TaskKey;
+
+    #[derive(Deserialize, Debug)]
     pub struct ToggleTimeCSVEntry {
-        #[serde(rename = "Project")]
-        pub project: String,
-        #[serde(rename = "Client")]
-        pub client: String,
-        #[serde(rename = "Description")]
-        pub description: String,
+        #[serde(flatten)]
+        pub task_key: TaskKey,
         #[serde(rename = "Duration")]
         pub duration: String,
     }
 
     #[derive(serde::Deserialize, Debug)]
     pub struct MappingCSVEntry {
-        #[serde(rename = "Project")]
-        pub project: String,
-        #[serde(rename = "Client")]
-        pub client: String,
-        #[serde(rename = "Description")]
-        pub description: String,
+        #[serde(flatten)]
+        pub task_key: TaskKey,
         #[serde(rename = "TidsregPath")]
         pub tidsreg_path: String,
     }
 }
 
-#[derive(Hash, Eq, PartialEq, Debug)]
-struct TaskKey {
+#[derive(Deserialize, Hash, Eq, PartialEq, Debug)]
+pub struct TaskKey {
+    #[serde(rename = "Project")]
     pub project: String,
+    #[serde(rename = "Client")]
     pub client: String,
+    #[serde(rename = "Description")]
     pub description: String,
 }
 
 impl Display for TaskKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{},{},{}", self.project, self.client, self.description)
-    }
-}
-
-impl TaskKey {
-    fn display_vec(vec: Vec<Self>) -> String {
-        let mut output = String::new();
-        for task_key in vec {
-            output += &task_key.to_string();
-            output += "\n"
-        }
-
-        
-        return output;
-    }
-}
-
-impl From<&ToggleTimeCSVEntry> for TaskKey {
-    fn from(value: &ToggleTimeCSVEntry) -> Self {
-        Self {
-            project: value.project.clone(),
-            client: value.client.clone(),
-            description: value.description.clone(),
-        }
-    }
-}
-
-impl From<&MappingCSVEntry> for TaskKey {
-    fn from(value: &MappingCSVEntry) -> Self {
-        Self {
-            project: value.project.clone(),
-            client: value.client.clone(),
-            description: value.description.clone(),
-        }
+        write!(f, "TaskKey: {{{},{},{}}}", self.project, self.client, self.description)
     }
 }
 
@@ -132,4 +103,11 @@ struct Output {
     pub description: String,
     pub tidsreg_path: String,
     pub duration: String,
+}
+
+
+impl Display for Output {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Output: \t{{{}, \t{}, {}}}", self.description, self.tidsreg_path, self.duration)
+    }
 }
