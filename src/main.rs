@@ -1,27 +1,49 @@
-use serde::Deserialize;
+use csv::Writer;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display};
 
 use csv_types::*;
 
 fn read_file() {
     let toggle_entries =
-        csv::Reader::from_path("data/Toggl_Track_summary_report.csv")
+        csv::Reader::from_path("data/report.csv")
             .unwrap()
             .into_deserialize()
             .collect::<Result<Vec<ToggleTimeCSVEntry>, _>>()
             .expect("Error reading toggle summary report");
 
-    let mapping_entries_map = csv::Reader::from_path("data/mapping.csv")
+    let mut mapping_entries: Vec<MappingCSVEntry> = csv::Reader::from_path("data/mapping.csv")
         .unwrap()
         .into_deserialize()
-        .filter_map(|res| {
-            match res {
-                Ok(value) => Some(value),
-                Err(err) => {println!("Skipped invalid mapping entry err: {err}"); None},
-            }
-        })
-        .map(|entry: MappingCSVEntry| (entry.task_key, entry.tidsreg_path))
-        .collect::<HashMap<_, _>>();
+        .collect::<Result<_, _>>().unwrap();
+
+    if mapping_entries.is_empty() {
+        panic!("No mappings were read");
+    }
+
+    let mut wtr = Writer::from_path("data/mapping.csv").expect("failed to open mapping.csv for writing");
+    mapping_entries.sort();
+
+    wtr.write_field("Project").unwrap();
+    wtr.write_field("Client").unwrap();
+    wtr.write_field("Description").unwrap();
+    wtr.write_field("TidsregPath").unwrap();
+    wtr.write_record(None::<&[u8]>).unwrap();
+
+    for record in mapping_entries.iter() {
+        wtr.write_field(record.task_key.project.clone()).unwrap();
+        wtr.write_field(record.task_key.client.clone()).unwrap();
+        wtr.write_field(record.task_key.description.clone()).unwrap();
+        wtr.write_field(record.tidsreg_path.clone()).unwrap();
+        wtr.write_record(None::<&[u8]>).unwrap();
+        //wtr.write_field(record.tidsreg_path.clone()).unwrap();
+        //wtr.serialize(record).unwrap();
+    }
+    wtr.flush().unwrap();
+
+    let mapping_entries_map = mapping_entries.into_iter()
+    .map(|entry| (entry.task_key, entry.tidsreg_path))
+    .collect::<HashMap<_, _>>();
 
     let mut mapped_outputs = Vec::new();
     let mut unmapped_outputs = Vec::new();
@@ -47,20 +69,25 @@ fn read_file() {
 
     if !unmapped_outputs.is_empty() {
         println!("====================== Add mapping data ======================");
-        let missing_mapping_keys = unmapped_outputs.into_iter().map(|e|e.task_key).collect::<Vec<_>>();
+        let missing_mapping_keys = unmapped_outputs.into_iter();
         for ele in missing_mapping_keys {
-            print!("{ele}");
+            println!("{ele}");
         }
     }
-
 }
+
+
+
+
 
 fn main() {
     read_file()
 }
 
 mod csv_types {
-    use serde::Deserialize;
+    use std::fmt::Display;
+
+    use serde::{Deserialize, Serialize};
 
     use crate::TaskKey;
 
@@ -72,7 +99,14 @@ mod csv_types {
         pub duration: String,
     }
 
-    #[derive(serde::Deserialize, Debug)]
+    
+    impl Display for ToggleTimeCSVEntry {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "TaskKey: {},{},{}, {}", self.task_key.project, self.task_key.client, self.task_key.description, self.duration)
+        }
+    }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord)]
     pub struct MappingCSVEntry {
         #[serde(flatten)]
         pub task_key: TaskKey,
@@ -81,7 +115,7 @@ mod csv_types {
     }
 }
 
-#[derive(Deserialize, Hash, Eq, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TaskKey {
     #[serde(rename = "Project")]
     pub project: String,
@@ -93,7 +127,7 @@ pub struct TaskKey {
 
 impl Display for TaskKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "TaskKey: {{{},{},{}}}", self.project, self.client, self.description)
+        write!(f, "TaskKey: {},{},{}", self.project, self.client, self.description)
     }
 }
 
@@ -108,6 +142,6 @@ struct Output {
 
 impl Display for Output {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Output: \t{{{}, \t{}, {}}}", self.description, self.tidsreg_path, self.duration)
+        write!(f, "Output: \t{}, \t{}, {}", self.description, self.tidsreg_path, self.duration)
     }
 }
