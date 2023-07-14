@@ -2,7 +2,8 @@ use csv::Writer;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display};
 
-use csv_types::*;
+use cli_table::{print_stdout, Table, WithTitle};
+
 
 fn read_file() {
     let toggle_entries =
@@ -62,18 +63,14 @@ fn read_file() {
 
     mapped_outputs.sort_by_key(|e| e.tidsreg_path.clone());
 
-    println!("====================== Sucessfully mapped ======================");
-    for ele in mapped_outputs {
-        println!("{ele}");
-    }
+    println!("Mapped tasks");
+    print_stdout(mapped_outputs.with_title()).unwrap();
 
-    if !unmapped_outputs.is_empty() {
-        println!("====================== Add mapping data ======================");
-        let missing_mapping_keys = unmapped_outputs.into_iter();
-        for ele in missing_mapping_keys {
-            println!("{ele}");
-        }
-    }
+
+    println!();
+    println!("Unmapped tasks");
+    print_stdout(unmapped_outputs.with_title()).unwrap();
+
 }
 
 
@@ -84,38 +81,30 @@ fn main() {
     read_file()
 }
 
-mod csv_types {
-    use std::fmt::Display;
+#[derive(Deserialize, Debug, Table)]
+pub struct ToggleTimeCSVEntry {
+    #[serde(flatten)]
+    pub task_key: TaskKey,
+    #[serde(rename = "Duration")]
+    pub duration: String,
+}
 
-    use serde::{Deserialize, Serialize};
 
-    use crate::TaskKey;
-
-    #[derive(Deserialize, Debug)]
-    pub struct ToggleTimeCSVEntry {
-        #[serde(flatten)]
-        pub task_key: TaskKey,
-        #[serde(rename = "Duration")]
-        pub duration: String,
-    }
-
-    
-    impl Display for ToggleTimeCSVEntry {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "TaskKey: {},{},{}, {}", self.task_key.project, self.task_key.client, self.task_key.description, self.duration)
-        }
-    }
-
-    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord)]
-    pub struct MappingCSVEntry {
-        #[serde(flatten)]
-        pub task_key: TaskKey,
-        #[serde(rename = "TidsregPath")]
-        pub tidsreg_path: String,
+impl Display for ToggleTimeCSVEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "TaskKey: {},{},{}, {}", self.task_key.project, self.task_key.client, self.task_key.description, self.duration)
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MappingCSVEntry {
+    #[serde(flatten)]
+    pub task_key: TaskKey,
+    #[serde(rename = "TidsregPath")]
+    pub tidsreg_path: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Table)]
 pub struct TaskKey {
     #[serde(rename = "Project")]
     pub project: String,
@@ -131,14 +120,13 @@ impl Display for TaskKey {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Table)]
 #[allow(dead_code)]
 struct Output {
     pub description: String,
     pub tidsreg_path: String,
     pub duration: String,
 }
-
 
 impl Display for Output {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

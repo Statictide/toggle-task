@@ -10,3 +10,4 @@ anyhow = "1.0.71"
 csv = "1.2.2"
 itertools = "0.11.0"
 serde = { version = "1.0.171", features = ["derive"] }
+cli-table = "0.4"
